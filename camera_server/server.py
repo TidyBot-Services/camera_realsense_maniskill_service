@@ -20,15 +20,18 @@ except ImportError:
 
 from .config import CAMERA_WS_PORT, DEFAULT_FPS, DEFAULT_HEIGHT, DEFAULT_WIDTH, SIM_CAMERAS
 
-# Message types (same as MuJoCo camera bridge)
-GET_STATE = 1
-STATE = 2
-SUBSCRIBE = 3
-UNSUBSCRIBE = 4
-ACK = 5
-ERROR = 6
-GET_INTRINSICS = 7
-INTRINSICS = 8
+# Message types — must match camera_server.protocol.MessageType
+# Client -> Server
+SUBSCRIBE = 1
+UNSUBSCRIBE = 2
+GET_STATE = 3
+GET_INTRINSICS = 6
+# Server -> Client
+STATE = 10
+FRAME = 11
+ERROR = 12
+ACK = 13
+INTRINSICS = 14
 
 
 class CameraBridge:
@@ -81,6 +84,9 @@ class CameraBridge:
         quality = 80
 
         try:
+            # Send initial state on connect (camera client expects this)
+            ws.send(json.dumps(self._build_state()))
+
             while self._running:
                 # Check for incoming messages (non-blocking)
                 try:
@@ -114,12 +120,15 @@ class CameraBridge:
                     if state.camera_rgb is not None:
                         frame_data = self._encode_jpeg(state.camera_rgb, quality)
                         header = {
-                            "camera_id": "maniskill_001",
-                            "stream": "color",
-                            "timestamp": time.time(),
-                            "width": state.camera_rgb.shape[1],
-                            "height": state.camera_rgb.shape[0],
-                            "format": "jpeg",
+                            "type": FRAME,
+                            "data": {
+                                "device_id": "maniskill_001",
+                                "stream_type": "color",
+                                "timestamp": time.time(),
+                                "width": state.camera_rgb.shape[1],
+                                "height": state.camera_rgb.shape[0],
+                                "format": "jpeg",
+                            },
                         }
                         ws.send(self._pack_frame(header, frame_data))
 
@@ -127,12 +136,15 @@ class CameraBridge:
                     if state.camera_depth is not None:
                         frame_data = self._encode_depth_png(state.camera_depth)
                         header = {
-                            "camera_id": "maniskill_001",
-                            "stream": "depth",
-                            "timestamp": time.time(),
-                            "width": state.camera_depth.shape[1],
-                            "height": state.camera_depth.shape[0],
-                            "format": "png",
+                            "type": FRAME,
+                            "data": {
+                                "device_id": "maniskill_001",
+                                "stream_type": "depth",
+                                "timestamp": time.time(),
+                                "width": state.camera_depth.shape[1],
+                                "height": state.camera_depth.shape[0],
+                                "format": "png",
+                            },
                         }
                         ws.send(self._pack_frame(header, frame_data))
 
