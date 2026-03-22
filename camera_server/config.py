@@ -6,5 +6,6 @@ DEFAULT_HEIGHT = 128
 DEFAULT_FPS = 30
 
 SIM_CAMERAS = {
-    "wrist_camera": {"name": "wrist_camera", "serial": "maniskill_001"},
+    "wrist_camera": {"name": "wrist_camera", "serial": "maniskill_wrist"},
+    "base_camera": {"name": "base_camera", "serial": "maniskill_base"},
 }

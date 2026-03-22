@@ -116,37 +116,47 @@ class CameraBridge:
 
                 if streaming:
                     state = self._server.get_state()
-                    # Send RGB frame
-                    if state.camera_rgb is not None:
-                        frame_data = self._encode_jpeg(state.camera_rgb, quality)
-                        header = {
-                            "type": FRAME,
-                            "data": {
-                                "device_id": "maniskill_001",
-                                "stream_type": "color",
-                                "timestamp": time.time(),
-                                "width": state.camera_rgb.shape[1],
-                                "height": state.camera_rgb.shape[0],
-                                "format": "jpeg",
-                            },
-                        }
-                        ws.send(self._pack_frame(header, frame_data))
+                    now = time.time()
+                    cameras = state.cameras or {}
+                    for cam_name, cam_info in SIM_CAMERAS.items():
+                        cam_data = cameras.get(cam_name)
+                        if not cam_data:
+                            continue
+                        device_id = cam_info["serial"]
 
-                    # Send depth frame
-                    if state.camera_depth is not None:
-                        frame_data = self._encode_depth_png(state.camera_depth)
-                        header = {
-                            "type": FRAME,
-                            "data": {
-                                "device_id": "maniskill_001",
-                                "stream_type": "depth",
-                                "timestamp": time.time(),
-                                "width": state.camera_depth.shape[1],
-                                "height": state.camera_depth.shape[0],
-                                "format": "png",
-                            },
-                        }
-                        ws.send(self._pack_frame(header, frame_data))
+                        # Send RGB frame
+                        rgb = cam_data.get("rgb")
+                        if rgb is not None:
+                            frame_data = self._encode_jpeg(rgb, quality)
+                            header = {
+                                "type": FRAME,
+                                "data": {
+                                    "device_id": device_id,
+                                    "stream_type": "color",
+                                    "timestamp": now,
+                                    "width": rgb.shape[1],
+                                    "height": rgb.shape[0],
+                                    "format": "jpeg",
+                                },
+                            }
+                            ws.send(self._pack_frame(header, frame_data))
+
+                        # Send depth frame
+                        depth = cam_data.get("depth")
+                        if depth is not None:
+                            frame_data = self._encode_depth_png(depth)
+                            header = {
+                                "type": FRAME,
+                                "data": {
+                                    "device_id": device_id,
+                                    "stream_type": "depth",
+                                    "timestamp": now,
+                                    "width": depth.shape[1],
+                                    "height": depth.shape[0],
+                                    "format": "png",
+                                },
+                            }
+                            ws.send(self._pack_frame(header, frame_data))
 
                     time.sleep(1.0 / fps)
                 else:
