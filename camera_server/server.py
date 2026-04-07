@@ -186,10 +186,13 @@ class CameraBridge:
     def _encode_depth_png(depth_array):
         """Encode HxWx1 depth array to PNG bytes (16-bit depth in mm)."""
         if Image is not None:
-            # Convert to mm (ManiSkill depth is in meters as int16)
             depth_2d = depth_array.squeeze()
-            if depth_2d.dtype != np.uint16:
+            if np.issubdtype(depth_2d.dtype, np.floating):
+                # Float depth in meters → convert to mm as uint16
                 depth_2d = np.clip(depth_2d * 1000, 0, 65535).astype(np.uint16)
+            elif depth_2d.dtype != np.uint16:
+                # Integer depth already in mm (e.g. int16) → just cast to uint16
+                depth_2d = np.clip(depth_2d, 0, 65535).astype(np.uint16)
             img = Image.fromarray(depth_2d, mode="I;16")
             buf = io.BytesIO()
             img.save(buf, format="PNG")
