@@ -37,8 +37,9 @@ INTRINSICS = 14
 class CameraBridge:
     """Protocol bridge: WebSocket for camera streaming."""
 
-    def __init__(self, server, port=CAMERA_WS_PORT):
+    def __init__(self, server, port=CAMERA_WS_PORT, env_idx=0):
         self._server = server
+        self._env_idx = env_idx
         self._port = port
         self._running = False
         self._thread = None
@@ -115,7 +116,7 @@ class CameraBridge:
                     break
 
                 if streaming:
-                    state = self._server.get_state()
+                    state = self._server.get_state(env_idx=self._env_idx)
                     now = time.time()
                     cameras = state.cameras or {}
                     for cam_name, cam_info in SIM_CAMERAS.items():
